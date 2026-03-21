@@ -15,7 +15,7 @@ return [
     |
     */
 
-    'default' => env('CACHE_STORE', 'database'),
+    'default' => env('QUEUE_CONNECTION', 'sync'),
 
     /*
     |--------------------------------------------------------------------------
@@ -40,7 +40,7 @@ return [
         ],
 
         'database' => [
-            'driver' => 'database',
+            'driver' => env('SESSION_DRIVER', 'file'),
             'connection' => env('DB_CACHE_CONNECTION'),
             'table' => env('DB_CACHE_TABLE', 'cache'),
             'lock_connection' => env('DB_CACHE_LOCK_CONNECTION'),

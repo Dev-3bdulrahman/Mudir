@@ -28,5 +28,14 @@ fi
 rm -rf /var/www/html/public/storage
 ln -s ../storage/app/public /var/www/html/public/storage
 
+# Run migrations (if DB is configured)
+echo "Running migrations..."
+php artisan migrate --force || echo "Migration failed (DB might not be ready), skipping..."
+
+# Clear caches
+php artisan view:clear || true
+php artisan config:clear || true
+php artisan cache:clear || true
+
 echo "Starting Supervisor..."
 exec /usr/bin/supervisord -c /etc/supervisor/conf.d/supervisord.conf
