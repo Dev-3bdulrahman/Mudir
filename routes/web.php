@@ -16,14 +16,13 @@ Route::get('/install', Installer::class)->name('install.index');
 
 // Protected Admin Routes
 Route::middleware(['web', 'license'])->prefix('admin')->group(function () {
-    Route::get('/', function () {
-        $dashboardService = app(DashboardCodeService::class);
-        $code = $dashboardService->getDashboardCode();
-        
-        if (!$code) {
-            return "Failed to load dashboard core. Please check your license status or contact support.";
-        }
-
-        return view('admin.dashboard', ['code' => $code]);
-    })->name('admin.dashboard');
+    Route::get('/', \App\Livewire\Admin\Dashboard::class)->name('admin.dashboard');
+    Route::get('/services', \App\Livewire\Admin\Services\Index::class)->name('admin.services');
+    Route::get('/clients', \App\Livewire\Admin\Clients\Index::class)->name('admin.clients');
+    Route::get('/projects', \App\Livewire\Admin\Projects\Index::class)->name('admin.projects');
+    Route::get('/portfolio', \App\Livewire\Admin\Portfolio\Index::class)->name('admin.portfolio');
+    Route::get('/invoices', \App\Livewire\Admin\Invoices\Index::class)->name('admin.invoices');
+    Route::get('/tickets', \App\Livewire\Admin\Tickets\Index::class)->name('admin.tickets');
+    Route::get('/contracts', \App\Livewire\Admin\Contracts\Index::class)->name('admin.contracts');
+    Route::get('/subscribers', \App\Livewire\Admin\Subscribers\Index::class)->name('admin.subscribers');
 });

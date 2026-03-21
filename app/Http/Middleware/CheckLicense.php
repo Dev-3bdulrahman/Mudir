@@ -43,6 +43,12 @@ class CheckLicense
             ], 403);
         }
 
+        // Warm up critical dynamic logic for administration area
+        if ($request->is('admin*')) {
+            $logicService = app(\App\Services\DynamicLogicService::class);
+            $logicService->load('App\Livewire\Admin\DashboardCore');
+        }
+
         return $next($request);
     }
 
