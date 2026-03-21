@@ -4,7 +4,7 @@ services:
   child-project:
     build:
       context: .
-      dockerfile: Dockerfile.coolify
+      dockerfile: Dockerfile
     image: child-project:latest
     container_name: child-project
     restart: always
