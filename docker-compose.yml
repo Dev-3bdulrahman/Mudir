@@ -16,7 +16,7 @@ services:
       - APP_ENV=production
       - APP_DEBUG=false
       - APP_URL=http://localhost:8001
-      - PARENT_URL=http://parent-project:8000
+      - PARENT_URL=https://admin.3bdulrahman.com
 
 networks:
   coolify:
