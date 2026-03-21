@@ -2,8 +2,8 @@
 
 namespace App\Services;
 
-use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Http;
 
 class DashboardCodeService
 {
@@ -15,10 +15,10 @@ class DashboardCodeService
         }
 
         $config = json_decode(file_get_contents($configPath), true);
-        
+
         // Cache the dashboard code for a specific version/subscriber
-        $cacheKey = 'dashboard_code_' . $config['license_key'];
-        
+        $cacheKey = 'dashboard_code_'.$config['license_key'];
+
         return Cache::remember($cacheKey, now()->addDay(), function () use ($config) {
             return $this->fetchFromParent($config);
         });
@@ -28,7 +28,7 @@ class DashboardCodeService
     {
         try {
             $parentUrl = config('services.parent.url', 'http://localhost:8000');
-            $response = Http::post($parentUrl . '/api/v1/license/dashboard', [
+            $response = Http::post($parentUrl.'/api/v1/license/dashboard', [
                 'domain' => $config['domain'],
                 'license_key' => $config['license_key'],
             ]);
@@ -48,7 +48,7 @@ class DashboardCodeService
         $configPath = storage_path('app/license_config.json');
         if (file_exists($configPath)) {
             $config = json_decode(file_get_contents($configPath), true);
-            Cache::forget('dashboard_code_' . $config['license_key']);
+            Cache::forget('dashboard_code_'.$config['license_key']);
             Cache::forget('license_status');
         }
     }
