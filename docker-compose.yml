@@ -15,7 +15,9 @@ services:
     environment:
       - APP_ENV=production
       - APP_DEBUG=false
-      - APP_URL=http://localhost:8001
+      - APP_URL=https://user.3bdulrahman.com
+      - ASSET_URL=https://user.3bdulrahman.com
+      - FORCE_HTTPS=true
       - PARENT_URL=https://admin.3bdulrahman.com
 
 networks:
