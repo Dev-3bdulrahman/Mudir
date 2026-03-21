@@ -66,6 +66,6 @@ RUN mkdir -p /var/www/html/storage/logs /var/www/html/bootstrap/cache \
   && chown -R www-data:www-data /var/www/html \
   && chmod -R 775 /var/www/html/storage /var/www/html/bootstrap/cache
 
-EXPOSE 80
+EXPOSE 3000
 
 ENTRYPOINT ["/usr/local/bin/docker-entrypoint.sh"]
