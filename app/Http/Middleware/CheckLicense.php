@@ -78,7 +78,9 @@ class CheckLicense
         try {
             $parentUrl = config('services.parent.url', 'http://localhost:8000');
             
-            $response = Http::post($parentUrl . '/api/v1/license/check', [
+            $response = Http::withHeaders([
+                'Accept' => 'application/json',
+            ])->post($parentUrl . '/api/v1/license/check', [
                 'domain' => $config['domain'],
                 'license_key' => $config['license_key'],
                 'product_slug' => $config['product_slug'],
