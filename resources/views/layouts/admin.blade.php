@@ -163,22 +163,6 @@
             </a>
 
             <div class="pt-6 pb-2">
-                <p class="text-[10px] font-black uppercase tracking-widest text-gray-400 px-4">{{ __('Licensing') }}</p>
-            </div>
-
-            <a href="{{ route('admin.licensed-products') }}" wire:navigate
-                class="flex items-center gap-3 px-4 py-3 {{ request()->routeIs('admin.licensed-products') ? 'text-white bg-blue-600 shadow-md shadow-blue-500/20' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800' }} rounded-lg transition-all duration-200">
-                <i data-lucide="shield-check" class="w-5 h-5"></i>
-                <span class="font-medium">{{ __('Licensed Products') }}</span>
-            </a>
-
-            <a href="{{ route('admin.subscribers') }}" wire:navigate
-                class="flex items-center gap-3 px-4 py-3 {{ request()->routeIs('admin.subscribers') ? 'text-white bg-blue-600 shadow-md shadow-blue-500/20' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800' }} rounded-lg transition-all duration-200">
-                <i data-lucide="users" class="w-5 h-5"></i>
-                <span class="font-medium">{{ __('Subscribers') }}</span>
-            </a>
-
-            <div class="pt-6 pb-2">
                 <p class="text-[10px] font-black uppercase tracking-widest text-gray-400 px-4">{{ __('System') }}</p>
             </div>
 

@@ -44,7 +44,7 @@ Route::post('/logout', function () {
 Route::get('/install', \App\Livewire\Install\Installer::class)->name('install.index');
 
 // ─── Admin (requires valid license + authenticated user) ───────────────────
-Route::middleware(['auth', 'license'])->prefix('admin')->group(function () {
+Route::middleware(['license', 'auth'])->prefix('admin')->group(function () {
 
     // Dashboard
     Route::get('/', \App\Livewire\Admin\Dashboard::class)->name('admin.dashboard');
@@ -79,8 +79,6 @@ Route::middleware(['auth', 'license'])->prefix('admin')->group(function () {
 
     // System
     Route::get('/visitors', \App\Livewire\Admin\Visitors\Index::class)->name('admin.visitors');
-    Route::get('/licensed-products', \App\Livewire\Admin\LicensedProducts\Index::class)->name('admin.licensed-products');
-    Route::get('/subscribers', \App\Livewire\Admin\Subscribers\Index::class)->name('admin.subscribers');
 });
 
 // ─── Staff Area ────────────────────────────────────────────────────────────

@@ -22,6 +22,7 @@ class CheckLicense
             return response()->view('errors.license', [
                 'status' => $licenseStatus['status'] ?? 'invalid',
                 'message' => $licenseStatus['message'] ?? 'Your license is inactive. Please renew to access the dashboard.',
+                'support_info' => $licenseStatus['support_info'] ?? [],
             ], 403);
         }
 
@@ -66,17 +67,34 @@ class CheckLicense
                 if (($data['status'] ?? '') === 'active') {
                     return ['valid' => true, 'status' => 'active'];
                 }
-                return ['valid' => false, 'status' => $data['status'] ?? 'invalid', 'message' => $data['message'] ?? 'License is not active.'];
+                return [
+                    'valid' => false, 
+                    'status' => $data['status'] ?? 'invalid', 
+                    'message' => $data['message'] ?? 'License is not active.',
+                    'support_info' => $data['support_info'] ?? []
+                ];
             }
 
             Log::warning('License check failed: HTTP ' . $response->status(), ['body' => $response->body()]);
-            return ['valid' => false, 'status' => 'error', 'message' => 'Could not verify license. Please try again later.'];
+            $errorData = $response->json();
+            return [
+                'valid' => false, 
+                'status' => 'error', 
+                'message' => 'Could not verify license. Please try again later.',
+                'support_info' => $errorData['support_info'] ?? []
+            ];
 
         } catch (\Exception $e) {
             Log::error('License check exception: ' . $e->getMessage());
-            // On network failure, allow access if we had a recent valid status
-            // (prevents locking out users due to parent server downtime)
-            return ['valid' => false, 'status' => 'unreachable', 'message' => 'Cannot reach license server. Please check your internet connection.'];
+            return [
+                'valid' => false, 
+                'status' => 'unreachable', 
+                'message' => 'Cannot reach license server. Please check your internet connection.',
+                'support_info' => [
+                    'email' => 'support@3bdulrahman.com',
+                    'whatsapp' => '+966500000000'
+                ]
+            ];
         }
     }
 }

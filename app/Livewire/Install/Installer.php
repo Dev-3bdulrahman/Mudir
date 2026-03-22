@@ -10,15 +10,23 @@ use Livewire\Attributes\Layout;
 class Installer extends Component
 {
     public int $step = 1;
+
+    // Step 1: Database Setup
+    public string $db_host = '127.0.0.1';
+    public string $db_port = '3306';
+    public string $db_database = '';
+    public string $db_username = '';
+    public string $db_password = '';
+    public string $db_connection_status = '';
     
-    // Step 2: Product & Identity
+    // Step 3: Product & Identity
     public array $products = [];
     public ?int $selected_product_id = null;
     public string $name = '';
     public string $email = '';
     public string $domain = '';
     
-    // Step 3: Auth via Parent
+    // Step 4: Auth via Parent
     public string $auth_mode = 'register'; // register, login
     public string $password = '';
     
@@ -38,7 +46,7 @@ class Installer extends Component
     public function fetchProducts()
     {
         try {
-            $parentUrl = config('services.parent.url', 'http://localhost:8000');
+            $parentUrl = config('services.parent.url', 'http://localhost:8001');
             $response = Http::get($parentUrl . '/api/v1/products');
             if ($response->successful()) {
                 $this->products = $response->json();
@@ -48,15 +56,38 @@ class Installer extends Component
         }
     }
 
+    public function testDatabaseConnection()
+    {
+        $this->error_message = '';
+        $this->db_connection_status = '';
+
+        try {
+            $dsn = "mysql:host={$this->db_host};port={$this->db_port};dbname={$this->db_database}";
+            $pdo = new \PDO($dsn, $this->db_username, $this->db_password, [
+                \PDO::ATTR_TIMEOUT => 5,
+                \PDO::ATTR_ERRMODE => \PDO::ERRMODE_EXCEPTION
+            ]);
+            $this->db_connection_status = 'success';
+            return true;
+        } catch (\PDOException $e) {
+            $this->error_message = __('Connection Failed') . ': ' . $e->getMessage();
+            $this->db_connection_status = 'error';
+            return false;
+        }
+    }
+
     public function nextStep()
     {
         $this->error_message = '';
         
         if ($this->step === 1) {
-            $this->validateRequirements();
+            if (!$this->testDatabaseConnection()) return;
+            $this->updateEnv();
         } elseif ($this->step === 2) {
-            $this->validateIdentity();
+            $this->validateRequirements();
         } elseif ($this->step === 3) {
+            $this->validateIdentity();
+        } elseif ($this->step === 4) {
             $this->processInstallation();
             return;
         }
@@ -64,6 +95,28 @@ class Installer extends Component
         if (!$this->error_message) {
             $this->step++;
         }
+    }
+
+    public function prevStep()
+    {
+        if ($this->step > 1) {
+            $this->step--;
+        }
+    }
+
+    protected function updateEnv()
+    {
+        $path = base_path('.env');
+        if (!File::exists($path)) return;
+
+        $content = File::get($path);
+        $content = preg_replace('/DB_HOST=.*/', 'DB_HOST=' . $this->db_host, $content);
+        $content = preg_replace('/DB_PORT=.*/', 'DB_PORT=' . $this->db_port, $content);
+        $content = preg_replace('/DB_DATABASE=.*/', 'DB_DATABASE=' . $this->db_database, $content);
+        $content = preg_replace('/DB_USERNAME=.*/', 'DB_USERNAME=' . $this->db_username, $content);
+        $content = preg_replace('/DB_PASSWORD=.*/', 'DB_PASSWORD="' . $this->db_password . '"', $content);
+
+        File::put($path, $content);
     }
 
     protected function validateRequirements()
@@ -91,7 +144,7 @@ class Installer extends Component
         $this->is_installing = true;
         
         try {
-            $parentUrl = config('services.parent.url', 'http://localhost:8000');
+            $parentUrl = config('services.parent.url', 'http://localhost:8001');
             
             $response = Http::post($parentUrl . '/api/v1/install/activate', [
                 'name' => $this->name,
@@ -105,7 +158,7 @@ class Installer extends Component
             if ($response->successful()) {
                 $data = $response->json();
                 $this->saveConfig($data);
-                $this->step = 4; // Success
+                $this->step = 5; // Success
             } else {
                 $this->error_message = $response->json('message', 'Installation failed.');
             }
