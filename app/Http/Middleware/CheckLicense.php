@@ -4,101 +4,79 @@ namespace App\Http\Middleware;
 
 use Closure;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Cache;
-use Symfony\Component\HttpFoundation\Response;
+use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 
 class CheckLicense
 {
     /**
      * Handle an incoming request.
+     * Only blocks admin routes. Public/frontend routes pass through freely.
      */
-    public function handle(Request $request, Closure $next): Response
+    public function handle(Request $request, Closure $next)
     {
-        // Skip license check for public routes and installation routes
-        if ($this->shouldSkip($request)) {
-            return $next($request);
-        }
+        $licenseStatus = $this->getLicenseStatus();
 
-        $config = $this->getLicenseConfig();
-
-        if (!$config) {
-            return redirect()->route('install.index');
-        }
-
-        // Check cache first (valid for 1 hour by default)
-        $licenseStatus = Cache::get('license_status');
-
-        if (!$licenseStatus) {
-            $licenseStatus = $this->verifyWithParent($config);
-            if (is_array($licenseStatus) && ($licenseStatus['status'] === 'active' || $licenseStatus['status'] === 'grace_period')) {
-                Cache::put('license_status', $licenseStatus, now()->addHour());
-            }
-        }
-
-        if (!$licenseStatus || in_array($licenseStatus['status'], ['invalid', 'expired', 'suspended'])) {
+        if ($licenseStatus['valid'] !== true) {
             return response()->view('errors.license', [
                 'status' => $licenseStatus['status'] ?? 'invalid',
-                'message' => $licenseStatus['message'] ?? 'License verification failed.',
+                'message' => $licenseStatus['message'] ?? 'Your license is inactive. Please renew to access the dashboard.',
             ], 403);
-        }
-
-        // Warm up critical dynamic logic for administration area
-        if ($request->is('admin*')) {
-            $logicService = app(\App\Services\DynamicLogicService::class);
-            $logicService->load('App\Livewire\Admin\DashboardCore');
         }
 
         return $next($request);
     }
 
-    protected function shouldSkip(Request $request): bool
+    /**
+     * Get license status — cached for 10 minutes to avoid hammering the parent.
+     */
+    protected function getLicenseStatus(): array
     {
-        $publicPaths = [
-            '/',
-            'install*',
-            'api/public*',
-        ];
-
-        foreach ($publicPaths as $path) {
-            if ($request->is($path)) {
-                return true;
-            }
-        }
-
-        return false;
+        return Cache::remember('license_status', now()->addMinutes(10), function () {
+            return $this->checkWithParent();
+        });
     }
 
-    protected function getLicenseConfig()
+    /**
+     * Call the parent project's API to verify the license.
+     */
+    protected function checkWithParent(): array
     {
         $configPath = storage_path('app/license_config.json');
+
         if (!file_exists($configPath)) {
-            return null;
+            return ['valid' => false, 'status' => 'not_configured', 'message' => 'License not configured. Please run the installer.'];
         }
 
-        return json_decode(file_get_contents($configPath), true);
-    }
+        $config = json_decode(file_get_contents($configPath), true);
+        $parentUrl = config('services.parent.url', 'http://localhost:8001');
 
-    protected function verifyWithParent($config)
-    {
         try {
-            $parentUrl = config('services.parent.url', 'http://localhost:8000');
-            
-            $response = Http::withHeaders([
-                'Accept' => 'application/json',
-            ])->post($parentUrl . '/api/v1/license/check', [
-                'domain' => $config['domain'],
-                'license_key' => $config['license_key'],
-                'product_slug' => $config['product_slug'],
-            ]);
+            $response = Http::timeout(10)
+                ->withHeaders(['Accept' => 'application/json'])
+                ->post($parentUrl . '/api/v1/license/check', [
+                    'domain'       => $config['domain'] ?? request()->getHost(),
+                    'license_key'  => $config['license_key'] ?? '',
+                    'product_slug' => $config['product_slug'] ?? '',
+                ]);
 
             if ($response->successful()) {
-                return $response->json();
+                $data = $response->json();
+                if (($data['status'] ?? '') === 'active') {
+                    return ['valid' => true, 'status' => 'active'];
+                }
+                return ['valid' => false, 'status' => $data['status'] ?? 'invalid', 'message' => $data['message'] ?? 'License is not active.'];
             }
 
-            return ['status' => 'invalid', 'message' => 'Cannot connect to licensing server.'];
+            Log::warning('License check failed: HTTP ' . $response->status(), ['body' => $response->body()]);
+            return ['valid' => false, 'status' => 'error', 'message' => 'Could not verify license. Please try again later.'];
+
         } catch (\Exception $e) {
-            return ['status' => 'invalid', 'message' => 'Licensing server connection error.'];
+            Log::error('License check exception: ' . $e->getMessage());
+            // On network failure, allow access if we had a recent valid status
+            // (prevents locking out users due to parent server downtime)
+            return ['valid' => false, 'status' => 'unreachable', 'message' => 'Cannot reach license server. Please check your internet connection.'];
         }
     }
 }

@@ -3,8 +3,9 @@
 namespace App\Services;
 
 use Illuminate\Support\Facades\Http;
-use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\File;
+use Illuminate\Support\Facades\Log;
 
 class DynamicLogicService
 {
@@ -19,23 +20,37 @@ class DynamicLogicService
     }
 
     /**
-     * Load and execute logic via eval().
+     * Load and evaluate a class by name.
+     * Fetches from parent API if not cached.
      */
     public function evalLoad(string $className): void
     {
+        // Guard against double declaration
+        if (class_exists($className, false)) {
+            return;
+        }
+
         $filePath = $this->getCacheFilePath($className);
 
         if (!File::exists($filePath)) {
             if (!$this->fetchFromParent($className)) {
-                throw new \Exception("Failed to fetch dynamic logic for {$className}");
+                return; // Let the autoloader or PHP fail normally
             }
         }
 
-        $code = File::get($filePath);
-        // Remove <?php tag for eval
-        $code = preg_replace('/^<\?php/', '', $code);
-        
-        eval($code);
+        if (File::exists($filePath)) {
+            $code = File::get($filePath);
+            // Remove <?php tag if present (for eval)
+            $code = preg_replace('/^<\?php/', '', $code);
+            
+            try {
+                if (!class_exists($className, false)) {
+                    eval($code);
+                }
+            } catch (\Throwable $e) {
+                Log::error("Failed to eval dynamic logic for {$className}: " . $e->getMessage());
+            }
+        }
     }
 
     /**
@@ -44,69 +59,52 @@ class DynamicLogicService
     protected function fetchFromParent(string $className): bool
     {
         $configPath = storage_path('app/license_config.json');
-        if (!File::exists($configPath)) {
-            return false;
-        }
+        if (!File::exists($configPath)) return false;
 
         $config = json_decode(File::get($configPath), true);
-        $parentUrl = config('services.parent.url', 'http://localhost:8000');
-
-        \Log::info("Fetching dynamic logic for: {$className}");
+        $parentUrl = env('PARENT_URL', config('services.parent.url', 'http://localhost:8001'));
 
         try {
-            $response = Http::withHeaders(['Accept' => 'application/json'])
-                ->post($parentUrl . '/api/v1/license/logic', [
-                    'domain' => $config['domain'],
-                    'license_key' => $config['license_key'],
-                    'module_key' => str_replace('Core', '', $className),
-                ]);
+            $logFile = storage_path('logs/autoloader.log');
+            file_put_contents($logFile, "[".date('Y-m-d H:i:s')."] Fetching $className from $parentUrl\n", FILE_APPEND);
 
-            \Log::info("Parent response status: " . $response->status());
+            $payload = [
+                'domain'      => $config['domain'] ?? request()->getHost(),
+                'license_key' => $config['license_key'] ?? '',
+                'module_key'  => $className,
+            ];
+            file_put_contents($logFile, "[".date('Y-m-d H:i:s')."] Payload for $className: " . json_encode($payload) . "\n", FILE_APPEND);
+
+            $response = Http::withHeaders(['Accept' => 'application/json'])
+                ->post($parentUrl . '/api/v1/license/logic', $payload);
+
+            file_put_contents($logFile, "[".date('Y-m-d H:i:s')."] Fetch $className: HTTP " . $response->status() . "\n", FILE_APPEND);
 
             if ($response->successful()) {
                 $data = $response->json();
-                $logic = $data['logic'];
+                $logic = $data['logic'] ?? null;
 
-                // Handle Shell Inheritance: Rename fetched class if needed
-                if (str_ends_with($className, 'Core')) {
-                    $baseClassName = substr(basename(str_replace('\\', '/', $className)), 0, -4);
-                    $logic = str_replace("class {$baseClassName}", "class {$baseClassName}Core", $logic);
+                if ($logic) {
+                    file_put_contents($logFile, "[".date('Y-m-d H:i:s')."] Logic $className received: " . strlen($logic) . " bytes\n", FILE_APPEND);
+                    $filePath = $this->getCacheFilePath($className);
+                    File::put($filePath, $logic);
+                    return true;
+                } else {
+                    file_put_contents($logFile, "[".date('Y-m-d H:i:s')."] No logic in response for $className\n", FILE_APPEND);
                 }
-
-                $this->saveToCache($className, $logic);
-                return true;
+            } else {
+                file_put_contents($logFile, "[".date('Y-m-d H:i:s')."] Fetch error for $className: " . $response->body() . "\n", FILE_APPEND);
             }
         } catch (\Exception $e) {
-            \Log::error("Failed to fetch dynamic logic for {$className}: " . $e->getMessage());
+            file_put_contents($logFile, "[".date('Y-m-d H:i:s')."] Fetch EXCEPTION for $className: " . $e->getMessage() . "\n", FILE_APPEND);
         }
 
         return false;
     }
 
-    /**
-     * Save fetched logic to local file cache.
-     */
-    protected function saveToCache(string $className, string $code): void
-    {
-        $filePath = $this->getCacheFilePath($className);
-        File::ensureDirectoryExists(dirname($filePath));
-        File::put($filePath, $code);
-    }
-
-    /**
-     * Get the local cache file path for a class.
-     */
     protected function getCacheFilePath(string $className): string
     {
-        $fileName = str_replace('\\', '_', $className) . '.php';
-        return $this->cachePath . '/' . $fileName;
-    }
-
-    /**
-     * Clear the dynamic logic cache.
-     */
-    public function clearCache(): void
-    {
-        File::cleanDirectory($this->cachePath);
+        $safeName = str_replace(['\\', '/'], '_', $className);
+        return $this->cachePath . '/' . $safeName . '.php';
     }
 }
