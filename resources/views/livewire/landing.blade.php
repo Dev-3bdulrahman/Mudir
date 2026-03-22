@@ -86,10 +86,15 @@
             <div x-show="activeTab === 'services'" class="tab-content">
                 <div class="grid md:grid-cols-2 gap-6 max-w-4xl mx-auto">
                     @foreach($services as $service)
-                    @php $color = $service['color'] ?? 'purple'; @endphp
+                    @php
+                        $color = $service['color'] ?? 'purple';
+                        $locale = app()->getLocale();
+                        $title = $service['title'][$locale] ?? $service['title']['ar'] ?? $service['title'] ?? '';
+                        $description = $service['description'][$locale] ?? $service['description']['ar'] ?? $service['description'] ?? '';
+                    @endphp
                     <div class="bg-gradient-to-br from-{{ $color }}-50 to-white dark:from-{{ $color }}-900/10 dark:to-gray-900 p-6 rounded-lg shadow-md hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-2 border-r-4 border-{{ $color }}-500 dark:border-{{ $color }}-600">
-                        <h3 class="text-xl font-bold text-{{ $color }}-700 dark:text-{{ $color }}-400 mb-3">{{ $service->getTranslation('title') }}</h3>
-                        <p class="text-gray-600 dark:text-gray-400">{{ $service->getTranslation('description') }}</p>
+                        <h3 class="text-xl font-bold text-{{ $color }}-700 dark:text-{{ $color }}-400 mb-3">{{ $title }}</h3>
+                        <p class="text-gray-600 dark:text-gray-400">{{ $description }}</p>
                     </div>
                     @endforeach
                 </div>
@@ -101,10 +106,15 @@
             <div x-show="activeTab === 'products'" class="tab-content" x-cloak>
                 <div class="grid md:grid-cols-2 gap-6 max-w-4xl mx-auto">
                     @foreach($products as $product)
-                    @php $color = $product['color'] ?? 'green'; @endphp
+                    @php
+                        $color = $product['color'] ?? 'green';
+                        $locale = app()->getLocale();
+                        $title = $product['title'][$locale] ?? $product['title']['ar'] ?? $product['title'] ?? '';
+                        $description = $product['description'][$locale] ?? $product['description']['ar'] ?? $product['description'] ?? '';
+                    @endphp
                     <div class="bg-gradient-to-br from-{{ $color }}-50 to-white dark:from-{{ $color }}-900/10 dark:to-gray-900 p-6 rounded-lg shadow-md hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-2 border-r-4 border-{{ $color }}-500 dark:border-{{ $color }}-600">
-                        <h3 class="text-xl font-bold text-{{ $color }}-700 dark:text-{{ $color }}-400 mb-3">{{ $product->getTranslation('title') }}</h3>
-                        <p class="text-gray-600 dark:text-gray-400">{{ $product->getTranslation('description') }}</p>
+                        <h3 class="text-xl font-bold text-{{ $color }}-700 dark:text-{{ $color }}-400 mb-3">{{ $title }}</h3>
+                        <p class="text-gray-600 dark:text-gray-400">{{ $description }}</p>
                     </div>
                     @endforeach
                 </div>
@@ -116,13 +126,18 @@
             <div x-show="activeTab === 'portfolio'" class="tab-content" x-cloak>
                 <div class="grid md:grid-cols-2 gap-6 max-w-4xl mx-auto">
                     @foreach($portfolio as $item)
-                    @php $color = $item['color'] ?? 'orange'; @endphp
+                    @php
+                        $color = $item['color'] ?? 'orange';
+                        $locale = app()->getLocale();
+                        $title = $item['title'][$locale] ?? $item['title']['ar'] ?? $item['title'] ?? '';
+                        $description = $item['description'][$locale] ?? $item['description']['ar'] ?? $item['description'] ?? '';
+                    @endphp
                     <div class="bg-gradient-to-br from-{{ $color }}-50 to-white dark:from-{{ $color }}-900/10 dark:to-gray-900 p-6 rounded-lg shadow-md hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-2 border-r-4 border-{{ $color }}-500 dark:border-{{ $color }}-600">
                         <div class="flex justify-between items-start mb-3">
-                            <h3 class="text-xl font-bold text-{{ $color }}-700 dark:text-{{ $color }}-400">{{ $item->getTranslation('title') }}</h3>
-                            <span class="text-xs bg-gradient-to-r from-{{ $color }}-500 to-{{ $color }}-600 text-white px-3 py-1 rounded-full">{{ $item['year'] }}</span>
+                            <h3 class="text-xl font-bold text-{{ $color }}-700 dark:text-{{ $color }}-400">{{ $title }}</h3>
+                            <span class="text-xs bg-gradient-to-r from-{{ $color }}-500 to-{{ $color }}-600 text-white px-3 py-1 rounded-full">{{ $item['year'] ?? '' }}</span>
                         </div>
-                        <p class="text-gray-600 dark:text-gray-400">{{ $item->getTranslation('description') }}</p>
+                        <p class="text-gray-600 dark:text-gray-400">{{ $description }}</p>
                     </div>
                     @endforeach
                 </div>

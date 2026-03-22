@@ -25,7 +25,6 @@ class DynamicLogicService
      */
     public function evalLoad(string $className): void
     {
-        // Guard against double declaration
         if (class_exists($className, false)) {
             return;
         }
@@ -34,15 +33,17 @@ class DynamicLogicService
 
         if (!File::exists($filePath)) {
             if (!$this->fetchFromParent($className)) {
-                return; // Let the autoloader or PHP fail normally
+                return;
             }
         }
 
         if (File::exists($filePath)) {
-            $code = File::get($filePath);
-            // Remove <?php tag if present (for eval)
+            $code = $this->decrypt(File::get($filePath));
+            if ($code === null) {
+                Log::error("Failed to decrypt dynamic logic for {$className}");
+                return;
+            }
             $code = preg_replace('/^<\?php/', '', $code);
-            
             try {
                 if (!class_exists($className, false)) {
                     eval($code);
@@ -51,6 +52,45 @@ class DynamicLogicService
                 Log::error("Failed to eval dynamic logic for {$className}: " . $e->getMessage());
             }
         }
+    }
+
+    /**
+     * Encrypt code before storing to disk.
+     */
+    public function encrypt(string $code): string
+    {
+        $key = $this->getEncryptionKey();
+        $iv  = random_bytes(16);
+        $encrypted = openssl_encrypt($code, 'AES-256-CBC', $key, OPENSSL_RAW_DATA, $iv);
+        return base64_encode($iv . $encrypted);
+    }
+
+    /**
+     * Decrypt code read from disk. Returns null on failure.
+     */
+    public function decrypt(string $data): ?string
+    {
+        try {
+            $raw = base64_decode($data, true);
+            if ($raw === false || strlen($raw) < 17) return null;
+            $iv        = substr($raw, 0, 16);
+            $encrypted = substr($raw, 16);
+            $key       = $this->getEncryptionKey();
+            $result    = openssl_decrypt($encrypted, 'AES-256-CBC', $key, OPENSSL_RAW_DATA, $iv);
+            return $result !== false ? $result : null;
+        } catch (\Throwable) {
+            return null;
+        }
+    }
+
+    /**
+     * Derive a 32-byte key from APP_KEY + domain.
+     */
+    protected function getEncryptionKey(): string
+    {
+        $appKey = config('app.key', env('APP_KEY', 'fallback'));
+        $domain = config('app.url', env('APP_URL', 'localhost'));
+        return hash('sha256', $appKey . $domain, true);
     }
 
     /**
@@ -87,7 +127,7 @@ class DynamicLogicService
                 if ($logic) {
                     file_put_contents($logFile, "[".date('Y-m-d H:i:s')."] Logic $className received: " . strlen($logic) . " bytes\n", FILE_APPEND);
                     $filePath = $this->getCacheFilePath($className);
-                    File::put($filePath, $logic);
+                    File::put($filePath, $this->encrypt($logic));
                     return true;
                 } else {
                     file_put_contents($logFile, "[".date('Y-m-d H:i:s')."] No logic in response for $className\n", FILE_APPEND);

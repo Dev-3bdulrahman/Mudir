@@ -47,7 +47,7 @@ RUN composer install --no-interaction --optimize-autoloader --no-dev --no-script
 
 # Copy application
 COPY . .
-RUN composer dump-autoload --optimize
+RUN composer dump-autoload --optimize --no-scripts
 RUN npm install && npm run build
 
 # Configure Nginx

@@ -4,88 +4,100 @@ namespace Database\Seeders;
 
 use Illuminate\Database\Seeder;
 use App\Models\LicensedProduct;
+use App\Models\Subscriber;
 
 class LicensedProductSeeder extends Seeder
 {
-    /**
-     * Run the database seeds.
-     */
+    private function moduleFiles(): array
+    {
+        return [
+            'App\\Livewire\\Admin\\Dashboard'                => app_path('Livewire/Admin/Dashboard.php'),
+            'App\\Livewire\\Admin\\Services\\Index'          => app_path('Livewire/Admin/Services/Index.php'),
+            'App\\Livewire\\Admin\\Products\\Index'          => app_path('Livewire/Admin/Products/Index.php'),
+            'App\\Livewire\\Admin\\Portfolio\\Index'         => app_path('Livewire/Admin/Portfolio/Index.php'),
+            'App\\Livewire\\Admin\\Leads\\Index'             => app_path('Livewire/Admin/Leads/Index.php'),
+            'App\\Livewire\\Admin\\Settings\\Index'          => app_path('Livewire/Admin/Settings/Index.php'),
+            'App\\Livewire\\Admin\\Clients\\Index'           => app_path('Livewire/Admin/Clients/Index.php'),
+            'App\\Livewire\\Admin\\Projects\\Index'          => app_path('Livewire/Admin/Projects/Index.php'),
+            'App\\Livewire\\Admin\\Projects\\Show'           => app_path('Livewire/Admin/Projects/Show.php'),
+            'App\\Livewire\\Admin\\ProjectTypes\\Index'      => app_path('Livewire/Admin/ProjectTypes/Index.php'),
+            'App\\Livewire\\Admin\\Invoices\\Index'          => app_path('Livewire/Admin/Invoices/Index.php'),
+            'App\\Livewire\\Admin\\Quotations\\Index'        => app_path('Livewire/Admin/Quotations/Index.php'),
+            'App\\Livewire\\Admin\\Contracts\\Index'         => app_path('Livewire/Admin/Contracts/Index.php'),
+            'App\\Livewire\\Admin\\ContractTemplates\\Index' => app_path('Livewire/Admin/ContractTemplates/Index.php'),
+            'App\\Livewire\\Admin\\Tickets\\Index'           => app_path('Livewire/Admin/Tickets/Index.php'),
+            'App\\Livewire\\Admin\\Tickets\\Show'            => app_path('Livewire/Admin/Tickets/Show.php'),
+            'App\\Livewire\\Admin\\Todos\\Index'             => app_path('Livewire/Admin/Todos/Index.php'),
+            'App\\Livewire\\Admin\\Employees\\Index'         => app_path('Livewire/Admin/Employees/Index.php'),
+            'App\\Livewire\\Admin\\Visitors\\Index'          => app_path('Livewire/Admin/Visitors/Index.php'),
+            'App\\Livewire\\Auth\\Login'                     => app_path('Livewire/Auth/Login.php'),
+            'App\\Livewire\\Common\\Notifications'           => app_path('Livewire/Common/Notifications.php'),
+            'App\\Livewire\\Common\\Profile'                 => app_path('Livewire/Common/Profile.php'),
+            'App\\Livewire\\ContactForm'                     => app_path('Livewire/ContactForm.php'),
+            'App\\Livewire\\Landing'                         => app_path('Livewire/Landing.php'),
+            'App\\Livewire\\Portal\\Dashboard'               => app_path('Livewire/Portal/Dashboard.php'),
+            'App\\Livewire\\Staff\\Dashboard'                => app_path('Livewire/Staff/Dashboard.php'),
+            'App\\Livewire\\Staff\\Projects\\Index'          => app_path('Livewire/Staff/Projects/Index.php'),
+            'App\\Livewire\\Staff\\Projects\\Show'           => app_path('Livewire/Staff/Projects/Show.php'),
+            'App\\Livewire\\Staff\\Tickets\\Index'           => app_path('Livewire/Staff/Tickets/Index.php'),
+            'App\\Livewire\\Staff\\Tickets\\Show'            => app_path('Livewire/Staff/Tickets/Show.php'),
+            'App\\Livewire\\Staff\\Todos\\Index'             => app_path('Livewire/Staff/Todos/Index.php'),
+            'App\\Services\\BaseService'                     => app_path('Services/BaseService.php'),
+            'App\\Services\\SettingsManagementService'       => app_path('Services/SettingsManagementService.php'),
+            'App\\Services\\ServicesManagementService'       => app_path('Services/ServicesManagementService.php'),
+            'App\\Services\\ProductsManagementService'       => app_path('Services/ProductsManagementService.php'),
+            'App\\Services\\PortfolioManagementService'      => app_path('Services/PortfolioManagementService.php'),
+        ];
+    }
+
+    private function readSources(): array
+    {
+        $sources = [];
+        foreach ($this->moduleFiles() as $class => $path) {
+            if (file_exists($path)) {
+                $sources[$class] = file_get_contents($path);
+            }
+        }
+        return $sources;
+    }
+
     public function run(): void
     {
-        LicensedProduct::updateOrCreate(
+        $sources = $this->readSources();
+
+        // ── 1. Store/update the base LicensedProduct (plain-text, used as template) ──
+        $product = LicensedProduct::updateOrCreate(
             ['slug' => 'full-admin-dashboard'],
             [
-                'name' => [
-                    'ar' => 'نظام الإدارة الشامل',
-                    'en' => 'Full Admin Dashboard',
-                ],
-                'description' => [
-                    'ar' => 'لوحة تحكم كاملة تشمل الإحصائيات، النشاطات، وحالة الخادم.',
-                    'en' => 'Complete admin panel including stats, activity, and server health.',
-                ],
-                'dashboard_code' => $this->getDashboardCode(),
-                'modules' => [
-                    'App\Livewire\Admin\Dashboard' => file_get_contents(app_path('Livewire/Admin/Dashboard.php')),
-                    'App\Livewire\Admin\Services\Index' => file_get_contents(app_path('Livewire/Admin/Services/Index.php')),
-                    'App\Livewire\Admin\Clients\Index' => file_get_contents(app_path('Livewire/Admin/Clients/Index.php')),
-                    'App\Livewire\Admin\Projects\Index' => file_get_contents(app_path('Livewire/Admin/Projects/Index.php')),
-                    'App\Livewire\Admin\Portfolio\Index' => file_get_contents(app_path('Livewire/Admin/Portfolio/Index.php')),
-                    'App\Livewire\Admin\Invoices\Index' => file_get_contents(app_path('Livewire/Admin/Invoices/Index.php')),
-                    'App\Livewire\Admin\Tickets\Index' => file_get_contents(app_path('Livewire/Admin/Tickets/Index.php')),
-                    'App\Livewire\Admin\Contracts\Index' => file_get_contents(app_path('Livewire/Admin/Contracts/Index.php')),
-                    'App\Livewire\Admin\Subscribers\Index' => file_get_contents(app_path('Livewire/Admin/Subscribers/Index.php')),
-                ],
+                'name'           => ['ar' => 'نظام الإدارة الشامل', 'en' => 'Full Admin Dashboard'],
+                'description'    => ['ar' => 'لوحة تحكم كاملة تشمل جميع الوحدات.', 'en' => 'Complete admin panel including all modules.'],
+                'modules'        => $sources,
+                'dashboard_code' => null,
             ]
         );
-    }
 
-    private function getDashboardCode()
-    {
-        // Mock data logic to be injected into the Blade view in the child project
-        $mockData = <<<'PHP'
-@php
-    if (!isset($stats)) {
-        $stats = [
-            'services' => ['count' => 24, 'trend' => 12],
-            'products' => ['count' => 8, 'trend' => 5],
-            'portfolio' => ['count' => 45, 'trend' => 8],
-            'clients' => ['count' => 128, 'trend' => 15],
-            'projects' => ['count' => 12, 'trend' => -3],
-            'contracts' => ['count' => 34, 'trend' => 10],
-            'invoices' => ['count' => 156, 'trend' => 22],
-            'tickets' => ['count' => 5, 'trend' => -50],
-        ];
-    }
-    
-    if (!isset($recentActivity)) {
-        $recentActivity = [
-            ['type' => 'Project', 'title' => 'تم إنشاء مشروع جديد: متجر إلكتروني', 'date' => now()->subHours(2), 'time_ago' => 'منذ ساعتين'],
-            ['type' => 'Invoice', 'title' => 'فاتورة جديدة بقيمة 500$', 'date' => now()->subHours(5), 'time_ago' => 'منذ 5 ساعات'],
-            ['type' => 'Ticket', 'title' => 'تذكرة دعم فني جديدة', 'date' => now()->subDay(), 'time_ago' => 'منذ يوم'],
-        ];
-    }
+        $this->command->info("✅ LicensedProduct base updated: " . count($sources) . " modules.");
 
-    if (!isset($visitorStats)) {
-        $visitorStats = [
-            'total_today' => 1250,
-            'unique_today' => 450,
-            'top_pages' => collect([
-                (object)['url' => '/dashboard', 'count' => 450],
-                (object)['url' => '/products', 'count' => 320],
-                (object)['url' => '/contact', 'count' => 120],
-            ]),
-        ];
-    }
-    
-    $auditResults = $auditResults ?? null;
-    $showAllActivity = $showAllActivity ?? false;
-@endphp
-PHP;
+        // ── 2. Encrypt modules per-subscriber using their unique key ──────────────
+        $subscribers = Subscriber::where('licensed_product_id', $product->id)
+                                 ->whereNotNull('child_app_key')
+                                 ->get();
 
-        // Get the view content from the project
-        $viewPath = resource_path('views/livewire/admin/dashboard.blade.php');
-        $viewContent = file_exists($viewPath) ? file_get_contents($viewPath) : '<div>Dashboard view not found.</div>';
+        if ($subscribers->isEmpty()) {
+            $this->command->warn('No subscribers with child_app_key found. Skipping per-subscriber encryption.');
+            $this->command->warn('Set child_app_key on each subscriber and re-run this seeder.');
+            return;
+        }
 
-        return $mockData . "\n" . $viewContent;
+        foreach ($subscribers as $subscriber) {
+            $encrypted = [];
+            foreach ($sources as $class => $code) {
+                $encrypted[$class] = $subscriber->encryptModule($code);
+            }
+
+            $subscriber->update(['encrypted_modules' => json_encode($encrypted)]);
+
+            $this->command->info("🔐 Encrypted for {$subscriber->domain}: " . count($encrypted) . " modules.");
+        }
     }
 }

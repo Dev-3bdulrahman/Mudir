@@ -24,9 +24,9 @@ class Landing extends Component
         PortfolioManagementService $pos,
         SettingsManagementService $sts
     ) {
-        $this->services = $ss->getAllServices();
-        $this->products = $ps->getAllProducts();
-        $this->portfolio = $pos->getAllPortfolioItems();
+        $this->services = collect($ss->getAllServices());
+        $this->products = collect($ps->getAllProducts());
+        $this->portfolio = collect($pos->getAllPortfolioItems());
         $this->settings = $sts->getLocalizedSettings();
     }
 
